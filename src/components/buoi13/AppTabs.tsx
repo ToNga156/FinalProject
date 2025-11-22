@@ -2,11 +2,14 @@ import React from 'react';
 import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeStackScreen from './HomeStackScreen';
+import AdminStackScreen from './AdminStackScreen';
 import SignupScreen from './SignupScreen';
 import LoginScreen from './LoginScreen';
+import { useAuth } from './AuthContext';
 
 export type BottomTabParamList = {
   HomeTab: undefined;
+  AdminHomeTab: undefined;
   SignupTab: undefined;
   LoginTab: undefined;
 };
@@ -14,6 +17,9 @@ export type BottomTabParamList = {
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
 const AppTabs = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -32,16 +38,31 @@ const AppTabs = () => {
         headerShown: false
       }}
     >
+      {/* Home của user */}
       <Tab.Screen
         name="HomeTab"
         component={HomeStackScreen}
         options={{
-          title: 'Home',
+          title: 'Home User',
           tabBarIcon: ({ color, size }) => (
             <Text style={{ fontSize: size, color }}>🏠</Text>
           )
         }}
       />
+
+      {/* Home của admin - chỉ hiển thị khi là admin */}
+      {isAdmin && (
+        <Tab.Screen
+          name="AdminHomeTab"
+          component={AdminStackScreen}
+          options={{
+            title: 'Home Admin',
+            tabBarIcon: ({ color, size }) => (
+              <Text style={{ fontSize: size, color }}>⚙️</Text>
+            )
+          }}
+        />
+      )}
 
       <Tab.Screen
         name="SignupTab"

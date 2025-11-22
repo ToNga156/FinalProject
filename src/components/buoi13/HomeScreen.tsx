@@ -29,11 +29,13 @@ const productImages: ImageSourcePropType[] = [
 
 // Hàm convert Product từ database sang Product1 để hiển thị
 const convertProductToProduct1 = (product: Product): Product1 => {
+  // Sử dụng hình ảnh dựa trên categoryId để có hình tương ứng
+  const imageIndex = (product.categoryId - 1) % productImages.length;
   return {
     id: product.id.toString(),
     name: product.name,
     price: `${product.price.toLocaleString('vi-VN')}đ`,
-    image: productImages[product.id % productImages.length] // Sử dụng hình ảnh placeholder
+    image: productImages[imageIndex] // Sử dụng hình ảnh theo danh mục
   };
 };
 
@@ -314,7 +316,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
         <FlatList
           data={products}
           keyExtractor={(item) => item.id}
-          numColumns={2}
+          numColumns={3}
           renderItem={renderProduct}
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={
@@ -572,8 +574,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 15,
-    paddingVertical: 12,
-    backgroundColor: '#f9f9f9'
+    paddingVertical: 12
   },
   filterToggleText: {
     fontSize: 16,

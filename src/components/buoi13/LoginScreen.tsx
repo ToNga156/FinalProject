@@ -10,13 +10,18 @@ import {
   SafeAreaView,
   ActivityIndicator
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { loginUser } from '../../database';
 import { useAuth } from './AuthContext';
 import { BottomTabParamList } from './AppTabs';
+import { HomeStackParamList } from './types';
 
-type LoginScreenNavigationProp = BottomTabNavigationProp<BottomTabParamList, 'LoginTab'>;
+type LoginScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<BottomTabParamList, 'LoginTab'>,
+  NativeStackNavigationProp<HomeStackParamList>
+>;
 
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
@@ -49,8 +54,14 @@ const LoginScreen = () => {
             onPress: () => {
               setUsername('');
               setPassword('');
-              // Điều hướng đến HomeTab
-              navigation.navigate('HomeTab');
+              // Điều hướng theo role
+              if (user.role === 'admin') {
+                // Admin điều hướng đến AdminHomeTab
+                navigation.navigate('AdminHomeTab');
+              } else {
+                // User thường điều hướng đến HomeTab
+                navigation.navigate('HomeTab');
+              }
             }
           }
         ]);

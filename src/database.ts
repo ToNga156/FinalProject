@@ -23,11 +23,45 @@ const initialCategories: Category[] = [
   { id: 4, name: 'Mũ' }, { id: 5, name: 'Túi' },
 ];
 const initialProducts: Product[] = [
-  { id: 1, name: 'Áo sơ mi', price: 250000, img: 'hinh1.jpg', categoryId: 1 },
-  { id: 2, name: 'Giày sneaker', price: 1100000, img: 'hinh1.jpg', categoryId: 2 },
-  { id: 3, name: 'Balo thời trang', price: 490000, img: 'hinh1.jpg', categoryId: 3 },
-  { id: 4, name: 'Mũ lưỡi trai', price: 120000, img: 'hinh1.jpg', categoryId: 4 },
-  { id: 5, name: 'Túi xách nữ', price: 980000, img: 'hinh1.jpg', categoryId: 5 },
+  // Danh mục Áo (categoryId: 1)
+  { id: 1, name: 'Áo sơ mi trắng', price: 250000, img: 'ao1.jpg', categoryId: 1 },
+  { id: 2, name: 'Áo thun nam', price: 180000, img: 'ao2.jpg', categoryId: 1 },
+  { id: 3, name: 'Áo khoác gió', price: 450000, img: 'ao3.jpg', categoryId: 1 },
+  { id: 4, name: 'Áo polo', price: 320000, img: 'ao4.jpg', categoryId: 1 },
+  { id: 5, name: 'Áo len', price: 380000, img: 'ao5.jpg', categoryId: 1 },
+  { id: 6, name: 'Áo hoodie', price: 420000, img: 'ao6.jpg', categoryId: 1 },
+  
+  // Danh mục Giày (categoryId: 2)
+  { id: 7, name: 'Giày sneaker', price: 1100000, img: 'giay1.jpg', categoryId: 2 },
+  { id: 8, name: 'Giày thể thao', price: 950000, img: 'giay2.jpg', categoryId: 2 },
+  { id: 9, name: 'Giày cao gót', price: 650000, img: 'giay3.jpg', categoryId: 2 },
+  { id: 10, name: 'Giày búp bê', price: 480000, img: 'giay4.jpg', categoryId: 2 },
+  { id: 11, name: 'Giày boot', price: 1200000, img: 'giay5.jpg', categoryId: 2 },
+  { id: 12, name: 'Giày sandal', price: 350000, img: 'giay6.jpg', categoryId: 2 },
+  
+  // Danh mục Balo (categoryId: 3)
+  { id: 13, name: 'Balo thời trang', price: 490000, img: 'balo1.jpg', categoryId: 3 },
+  { id: 14, name: 'Balo laptop', price: 550000, img: 'balo2.jpg', categoryId: 3 },
+  { id: 15, name: 'Balo du lịch', price: 680000, img: 'balo3.jpg', categoryId: 3 },
+  { id: 16, name: 'Balo thể thao', price: 420000, img: 'balo4.jpg', categoryId: 3 },
+  { id: 17, name: 'Balo học sinh', price: 380000, img: 'balo5.jpg', categoryId: 3 },
+  { id: 18, name: 'Balo mini', price: 320000, img: 'balo6.jpg', categoryId: 3 },
+  
+  // Danh mục Mũ (categoryId: 4)
+  { id: 19, name: 'Mũ lưỡi trai', price: 120000, img: 'mu1.jpg', categoryId: 4 },
+  { id: 20, name: 'Mũ bucket', price: 150000, img: 'mu2.jpg', categoryId: 4 },
+  { id: 21, name: 'Mũ snapback', price: 180000, img: 'mu3.jpg', categoryId: 4 },
+  { id: 22, name: 'Mũ len', price: 200000, img: 'mu4.jpg', categoryId: 4 },
+  { id: 23, name: 'Mũ rộng vành', price: 250000, img: 'mu5.jpg', categoryId: 4 },
+  { id: 24, name: 'Mũ beanie', price: 100000, img: 'mu6.jpg', categoryId: 4 },
+  
+  // Danh mục Túi (categoryId: 5)
+  { id: 25, name: 'Túi xách nữ', price: 980000, img: 'tui1.jpg', categoryId: 5 },
+  { id: 26, name: 'Túi đeo chéo', price: 450000, img: 'tui2.jpg', categoryId: 5 },
+  { id: 27, name: 'Túi tote', price: 380000, img: 'tui3.jpg', categoryId: 5 },
+  { id: 28, name: 'Túi mini', price: 320000, img: 'tui4.jpg', categoryId: 5 },
+  { id: 29, name: 'Túi da', price: 1200000, img: 'tui5.jpg', categoryId: 5 },
+  { id: 30, name: 'Túi vải', price: 250000, img: 'tui6.jpg', categoryId: 5 },
 ];
 
 // ========================== KHỞI TẠO DATABASE ==========================
@@ -226,5 +260,77 @@ export const loginUser = async (username: string, password: string): Promise<Use
   } catch (error) {
     console.error('❌ Error logging in user:', error);
     return null;
+  }
+};
+
+// ====================== USER MANAGEMENT FUNCTIONS ======================
+export const fetchUsers = async (): Promise<User[]> => {
+  try {
+    const db = await getDb();
+    const results = await db.executeSql('SELECT * FROM users ORDER BY id');
+    const rows = results[0].rows;
+    const list: User[] = [];
+    for (let i = 0; i < rows.length; i++) list.push(rows.item(i));
+    return list;
+  } catch (error) {
+    console.error('❌ Error fetching users:', error);
+    return [];
+  }
+};
+
+export const updateUserRole = async (userId: number, role: string): Promise<void> => {
+  try {
+    const db = await getDb();
+    await db.executeSql('UPDATE users SET role = ? WHERE id = ?', [role, userId]);
+  } catch (error) {
+    console.error('❌ Error updating user role:', error);
+    throw error;
+  }
+};
+
+export const deleteUser = async (userId: number): Promise<void> => {
+  try {
+    const db = await getDb();
+    await db.executeSql('DELETE FROM users WHERE id = ?', [userId]);
+  } catch (error) {
+    console.error('❌ Error deleting user:', error);
+    throw error;
+  }
+};
+
+// ====================== CATEGORY MANAGEMENT FUNCTIONS ======================
+export const addCategory = async (name: string): Promise<void> => {
+  try {
+    const db = await getDb();
+    // Tìm id lớn nhất và tăng lên 1
+    const [result] = await db.executeSql('SELECT MAX(id) as maxId FROM categories');
+    const maxId = result.rows.item(0).maxId || 0;
+    await db.executeSql('INSERT INTO categories (id, name) VALUES (?, ?)', [maxId + 1, name]);
+  } catch (error) {
+    console.error('❌ Error adding category:', error);
+    throw error;
+  }
+};
+
+export const updateCategory = async (id: number, name: string): Promise<void> => {
+  try {
+    const db = await getDb();
+    await db.executeSql('UPDATE categories SET name = ? WHERE id = ?', [name, id]);
+  } catch (error) {
+    console.error('❌ Error updating category:', error);
+    throw error;
+  }
+};
+
+export const deleteCategory = async (id: number): Promise<void> => {
+  try {
+    const db = await getDb();
+    // Xóa các sản phẩm thuộc category này trước
+    await db.executeSql('DELETE FROM products WHERE categoryId = ?', [id]);
+    // Sau đó xóa category
+    await db.executeSql('DELETE FROM categories WHERE id = ?', [id]);
+  } catch (error) {
+    console.error('❌ Error deleting category:', error);
+    throw error;
   }
 };
