@@ -41,6 +41,13 @@ const AdminDashboard = () => {
       icon: '👥',
       screen: 'UserManagement' as keyof HomeStackParamList,
       description: 'Xem, thêm, sửa, xóa người dùng'
+    },
+    {
+      id: 'order',
+      title: 'Quản lý Đơn hàng',
+      icon: '📋',
+      screen: 'OrderManagement' as keyof HomeStackParamList,
+      description: 'Xem và cập nhật trạng thái đơn hàng'
     }
   ];
 

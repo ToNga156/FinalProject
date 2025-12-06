@@ -5,11 +5,17 @@ import HomeStackScreen from './HomeStackScreen';
 import AdminStackScreen from './AdminStackScreen';
 import SignupScreen from './SignupScreen';
 import LoginScreen from './LoginScreen';
+import CartScreen from './CartScreen';
+import OrderHistoryScreen from './OrderHistoryScreen';
+import ProfileScreen from './ProfileScreen';
 import { useAuth } from './AuthContext';
 
 export type BottomTabParamList = {
   HomeTab: undefined;
   AdminHomeTab: undefined;
+  CartTab: undefined;
+  OrderHistoryTab: undefined;
+  ProfileTab: undefined;
   SignupTab: undefined;
   LoginTab: undefined;
 };
@@ -38,12 +44,12 @@ const AppTabs = () => {
         headerShown: false
       }}
     >
-      {/* Home của user */}
+      {/* Home của user - hiển thị cho tất cả */}
       <Tab.Screen
         name="HomeTab"
         component={HomeStackScreen}
         options={{
-          title: 'Home User',
+          title: isAdmin ? 'Home' : 'Home User',
           tabBarIcon: ({ color, size }) => (
             <Text style={{ fontSize: size, color }}>🏠</Text>
           )
@@ -56,7 +62,7 @@ const AppTabs = () => {
           name="AdminHomeTab"
           component={AdminStackScreen}
           options={{
-            title: 'Home Admin',
+            title: 'Admin',
             tabBarIcon: ({ color, size }) => (
               <Text style={{ fontSize: size, color }}>⚙️</Text>
             )

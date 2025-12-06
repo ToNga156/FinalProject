@@ -8,6 +8,11 @@ import AdminDashboard from './AdminDashboard';
 import UserManagement from './UserManagement';
 import CategoryManagement from './CategoryManagement';
 import ProductManagement from './ProductManagement';
+import CartScreen from './CartScreen';
+import CheckoutScreen from './CheckoutScreen';
+import OrderHistoryScreen from './OrderHistoryScreen';
+import ProfileScreen from './ProfileScreen';
+import OrderManagement from './OrderManagement';
 import { HomeStackParamList } from './types';
 
 // export type HomeStackParamList = {
@@ -31,6 +36,11 @@ const HomeStackScreen = () => {
       <Stack.Screen name="UserManagement" component={UserManagement} />
       <Stack.Screen name="CategoryManagement" component={CategoryManagement} />
       <Stack.Screen name="ProductManagement" component={ProductManagement} />
+      <Stack.Screen name="Cart" component={CartScreen} />
+      <Stack.Screen name="Checkout" component={CheckoutScreen} />
+      <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="OrderManagement" component={OrderManagement} />
     </Stack.Navigator>
   );
 };

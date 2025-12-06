@@ -13,39 +13,109 @@ import {
 } from 'react-native';
 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { CommonActions } from '@react-navigation/native';
 import { Product1, HomeStackParamList } from './types';
-import { fetchProducts, Product, searchProductsByNameOrCategory, filterProducts } from '../../database';
+import { fetchProducts, Product, searchProductsByNameOrCategory, filterProducts, addToCart, getCartItems } from '../../database';
 import Header from './Header';
+import { useAuth } from './AuthContext';
 
 type HomeScreenProps = NativeStackScreenProps<HomeStackParamList, 'Home'>;
 
-// Sử dụng hình ảnh placeholder từ assets có sẵn
+// Sử dụng hình ảnh placeholder từ assets có sẵn (fallback khi không tìm thấy ảnh từ database)
 const productImages: ImageSourcePropType[] = [
-  require('../../../assets/images/avt1.jpg'),
-  require('../../../assets/images/copimage.png'),
-  require('../../../assets/images/avt1.jpg'),
-  require('../../../assets/images/copimage.png'),
+  require('../../../assets/images/background.jpg'),
+  require('../../../assets/images/7bc826eba41114e8d6e14913bba200ea.jpg'),
+  require('../../../assets/images/background.jpg'),
+  require('../../../assets/images/60a4448bc5d9b97f0b148deb2086a61e.jpg'),
 ];
+
+// Mapping các ảnh có sẵn - map từ tên file đến require path
+const imageMap: { [key: string]: ImageSourcePropType } = {
+  // Ảnh trong thư mục assets/ (không có thư mục images)
+  'somitrang.jpg': require('../../../assets/images/somitrang.jpg'),
+  'aothunnam.jpg': require('../../../assets/images/aothunnam.jpg'),
+  'aokhoacgio.jpg': require('../../../assets/images/aokhoacgio.jpg'),
+  'aopolo.jpg': require('../../../assets/images/aopolo.jpg'),
+  'balothoitrang.jpg': require('../../../assets/images/balothoitrang.jpg'),
+  'balolaptop.jpg': require('../../../assets/images/balolaptop.jpg'),
+  'balodulich.jpg': require('../../../assets/images/balodulich.jpg'),
+  'balothethao.jpg': require('../../../assets/images/balothethao.jpg'),
+  'balohocsinh.jpg': require('../../../assets/images/balohocsinh.jpg'),
+  'baolomini.jpg': require('../../../assets/images/baolomini.jpg'),
+  'muluoitrai.jpg': require('../../../assets/images/muluoitrai.jpg'),
+  'mubucket.jpg': require('../../../assets/images/mubucket.jpg'),
+  'musnapback.png': require('../../../assets/images/musnapback.png'),
+  'mulen.jpg': require('../../../assets/images/mulen.jpg'),
+  'murongvanh.jpg': require('../../../assets/images/murongvanh.jpg'),
+  'mubeanie.jpg': require('../../../assets/images/mubeanie.jpg'),
+  'tuixaschnu.jpg': require('../../../assets/images/tuixaschnu.jpg'),
+  'tuideocheo.jpg': require('../../../assets/images/tuideocheo.jpg'),
+  'tuitote.jpg': require('../../../assets/images/tuitote.jpg'),
+  'tuimini.jpg': require('../../../assets/images/tuimini.jpg'),
+  'tuida.jpg': require('../../../assets/images/tuida.jpg'),
+  'tuivai.jpg': require('../../../assets/images/tuivai.jpg'),
+  
+  // Ảnh trong thư mục assets/images/
+  '7bc826eba41114e8d6e14913bba200ea.jpg': require('../../../assets/images/7bc826eba41114e8d6e14913bba200ea.jpg'),
+  '60a4448bc5d9b97f0b148deb2086a61e.jpg': require('../../../assets/images/60a4448bc5d9b97f0b148deb2086a61e.jpg'),
+  'fbcc9d99190adf16c0a0c50c56f72a21.jpg': require('../../../assets/images/fbcc9d99190adf16c0a0c50c56f72a21.jpg'),
+  'c24d3694c02ec6c6357a272317a29379.jpg': require('../../../assets/images/c24d3694c02ec6c6357a272317a29379.jpg'),
+  '683f90012798ec5d6e581f2a73792656.jpg': require('../../../assets/images/683f90012798ec5d6e581f2a73792656.jpg'),
+  '7a98c0d842332176931eff0285810bab.jpg': require('../../../assets/images/7a98c0d842332176931eff0285810bab.jpg'),
+  '28eddfd49ca1fbe3a605e461ab5bcdd3.jpg': require('../../../assets/images/28eddfd49ca1fbe3a605e461ab5bcdd3.jpg'),
+  '2f037efeff55f8f0a1339d7e2ec48359.jpg': require('../../../assets/images/2f037efeff55f8f0a1339d7e2ec48359.jpg'),
+  'background.jpg': require('../../../assets/images/background.jpg'),
+};
+
+// Hàm lấy hình ảnh từ database
+const getProductImage = (product: Product): ImageSourcePropType => {
+  // Nếu có đường dẫn ảnh trong database, thử tìm tên file
+  if (product.img) {
+    // Lấy tên file từ đường dẫn (có thể là '../assets/images/filename.jpg' hoặc 'filename.jpg')
+    // Xử lý cả trường hợp có 'images/images' trong đường dẫn
+    let fileName = '';
+    
+    // Xử lý trường hợp có 'images/images' trong đường dẫn
+    if (product.img.includes('images/images/')) {
+      fileName = product.img.split('images/images/')[1];
+    } else {
+      // Lấy tên file cuối cùng từ đường dẫn
+      const pathParts = product.img.split('/');
+      fileName = pathParts[pathParts.length - 1];
+    }
+    
+    // Kiểm tra xem có ảnh trong mapping không
+    if (imageMap[fileName]) {
+      return imageMap[fileName];
+    }
+  }
+  
+  // Nếu không tìm thấy, sử dụng hình ảnh dựa trên categoryId
+  const imageIndex = (product.categoryId - 1) % productImages.length;
+  return productImages[imageIndex];
+};
 
 // Hàm convert Product từ database sang Product1 để hiển thị
 const convertProductToProduct1 = (product: Product): Product1 => {
-  // Sử dụng hình ảnh dựa trên categoryId để có hình tương ứng
-  const imageIndex = (product.categoryId - 1) % productImages.length;
   return {
     id: product.id.toString(),
     name: product.name,
     price: `${product.price.toLocaleString('vi-VN')}đ`,
-    image: productImages[imageIndex] // Sử dụng hình ảnh theo danh mục
+    image: getProductImage(product)
   };
 };
 
 const HomeScreen = ({ navigation }: HomeScreenProps) => {
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product1[]>([]);
   const [allProducts, setAllProducts] = useState<Product1[]>([]);
+  const [productsMap, setProductsMap] = useState<Map<string, Product>>(new Map());
   const [loading, setLoading] = useState(true);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const [buyingNow, setBuyingNow] = useState<string | null>(null);
   
   // Filter states
   const [showFilter, setShowFilter] = useState(false);
@@ -64,6 +134,13 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
         const convertedProducts = dbProducts.map(convertProductToProduct1);
         setProducts(convertedProducts);
         setAllProducts(convertedProducts); // Lưu tất cả sản phẩm để reset khi xóa search
+        
+        // Tạo map từ Product1 id sang Product gốc
+        const map = new Map<string, Product>();
+        dbProducts.forEach(product => {
+          map.set(product.id.toString(), product);
+        });
+        setProductsMap(map);
       } catch (error) {
         console.error('❌ Lỗi khi tải sản phẩm:', error);
       } finally {
@@ -94,6 +171,13 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
         const searchResults = await searchProductsByNameOrCategory(searchKeyword.trim());
         const convertedResults = searchResults.map(convertProductToProduct1);
         setProducts(convertedResults);
+        
+        // Cập nhật map
+        const map = new Map<string, Product>();
+        searchResults.forEach(product => {
+          map.set(product.id.toString(), product);
+        });
+        setProductsMap(map);
       } catch (error) {
         console.error('❌ Lỗi khi tìm kiếm:', error);
       } finally {
@@ -130,6 +214,13 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
       const convertedResults = filteredResults.map(convertProductToProduct1);
       setProducts(convertedResults);
       setIsFilterActive(true);
+      
+      // Cập nhật map
+      const map = new Map<string, Product>();
+      filteredResults.forEach(product => {
+        map.set(product.id.toString(), product);
+      });
+      setProductsMap(map);
     } catch (error) {
       console.error('❌ Lỗi khi lọc sản phẩm:', error);
     } finally {
@@ -147,21 +238,133 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
     setSearchKeyword(''); // Reset search khi reset filter
   };
 
-  const renderProduct = ({ item }: { item: Product1 }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate('Details', { product: item })}
-    >
-      <View style={styles.productCard}>
-        <Image source={item.image} style={styles.productImage} />
-        <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productPrice}>{item.price}</Text>
+  const handleAddToCart = async (productId: string) => {
+    if (!user) {
+      // Tự động chuyển hướng đến màn hình đăng nhập
+      // Navigate đến LoginTab từ parent navigator (Tab Navigator)
+      try {
+        // Thử lấy parent navigator và navigate
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+          (parentNav as any).navigate('LoginTab');
+        } else {
+          // Fallback: dùng CommonActions để navigate đến LoginTab
+          navigation.dispatch(
+            CommonActions.navigate({
+              name: 'LoginTab',
+            } as any)
+          );
+        }
+      } catch (error) {
+        console.error('Navigation error:', error);
+        // Fallback cuối cùng
+        (navigation as any).getParent()?.navigate('LoginTab');
+      }
+      return;
+    }
 
-        <TouchableOpacity style={styles.buyButton}>
-          <Text style={styles.buyButtonText}>Mua Ngay</Text>
+    const product = productsMap.get(productId);
+    if (!product) return;
+
+    try {
+      setAddingToCart(productId);
+      await addToCart(user.id, product.id, 1);
+      Alert.alert('Thành công', 'Đã thêm sản phẩm vào giỏ hàng');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      Alert.alert('Lỗi', 'Không thể thêm sản phẩm vào giỏ hàng');
+    } finally {
+      setAddingToCart(null);
+    }
+  };
+
+  const handleBuyNow = async (productId: string) => {
+    if (!user) {
+      // Tự động chuyển hướng đến màn hình đăng nhập
+      // Navigate đến LoginTab từ parent navigator (Tab Navigator)
+      try {
+        // Thử lấy parent navigator và navigate
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+          (parentNav as any).navigate('LoginTab');
+        } else {
+          // Fallback: dùng CommonActions để navigate đến LoginTab
+          navigation.dispatch(
+            CommonActions.navigate({
+              name: 'LoginTab',
+            } as any)
+          );
+        }
+      } catch (error) {
+        console.error('Navigation error:', error);
+        // Fallback cuối cùng
+        (navigation as any).getParent()?.navigate('LoginTab');
+      }
+      return;
+    }
+
+    const product = productsMap.get(productId);
+    if (!product) return;
+
+    try {
+      setBuyingNow(productId);
+      // Thêm sản phẩm vào giỏ hàng tạm thời
+      await addToCart(user.id, product.id, 1);
+      // Điều hướng đến checkout
+      navigation.navigate('Checkout' as any);
+    } catch (error) {
+      console.error('Error buying now:', error);
+      Alert.alert('Lỗi', 'Không thể thực hiện mua ngay');
+    } finally {
+      setBuyingNow(null);
+    }
+  };
+
+  const renderProduct = ({ item }: { item: Product1 }) => {
+    const originalProduct = productsMap.get(item.id);
+    const isLoading = addingToCart === item.id || buyingNow === item.id;
+    const isDisabled = isLoading; // Chỉ disable khi đang loading, không disable khi chưa đăng nhập
+
+    return (
+      <View style={styles.productCard}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Details', { product: item })}
+          activeOpacity={0.7}
+        >
+          <Image source={item.image} style={styles.productImage} />
+          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.productPrice}>{item.price}</Text>
         </TouchableOpacity>
+
+        <View style={styles.productActions}>
+          <TouchableOpacity
+            style={[styles.addToCartIcon, isDisabled && styles.buttonDisabled]}
+            onPress={() => handleAddToCart(item.id)}
+            disabled={isDisabled}
+            activeOpacity={0.7}
+          >
+            {addingToCart === item.id ? (
+              <ActivityIndicator size="small" color="#E91E63" />
+            ) : (
+              <Text style={styles.addToCartIconText}>+</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.buyButton, isDisabled && styles.buttonDisabled]}
+            onPress={() => handleBuyNow(item.id)}
+            disabled={isDisabled}
+            activeOpacity={0.7}
+          >
+            {buyingNow === item.id ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buyButtonText}>Mua Ngay</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -171,11 +374,11 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
       {/* Banner */}
       <View style={styles.bannerContainer}>
         <Image
-          source={require('../../../assets/images/copimage.png')}
+          source={require('../../../assets/images/background.jpg')}
           style={styles.banner}
         />
         <View style={styles.bannerOverlay}>
-          <Text style={styles.bannerTitle}>Cửa Hàng Thời Trang ABC</Text>
+          <Text style={styles.bannerTitle}>Thời Trang Cao Cấp </Text>
           <Text style={styles.bannerSubtitle}>Chất lượng - Uy tín - Giá tốt</Text>
         </View>
       </View>
@@ -200,7 +403,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
       </View>
 
       <Text style={styles.welcomeText}>
-        Chào mừng đến với cửa hàng thời trang ABC!
+        Chào mừng đến với cửa hàng thời trang Cao Cấp!
       </Text>
 
       {/* Search Bar */}
@@ -258,16 +461,16 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
             <View style={styles.filterRow}>
               <Text style={styles.filterLabel}>Giá từ:</Text>
               <TextInput
-                style={styles.filterInput}
+                style={styles.filterInputPrice}
                 placeholder="0"
                 value={minPrice}
                 onChangeText={setMinPrice}
                 keyboardType="numeric"
                 placeholderTextColor="#999"
               />
-              <Text style={styles.filterLabel}>đến:</Text>
+              <Text style={styles.filterLabelSmall}>đến:</Text>
               <TextInput
-                style={styles.filterInput}
+                style={styles.filterInputPrice}
                 placeholder="Không giới hạn"
                 value={maxPrice}
                 onChangeText={setMaxPrice}
@@ -488,45 +691,77 @@ const styles = StyleSheet.create({
   productCard: {
     flex: 1,
     backgroundColor: '#fff',
-    margin: 10,
-    padding: 10,
+    margin: 8,
+    padding: 8,
     borderRadius: 10,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    elevation: 5
+    elevation: 5,
+    minWidth: 100
   },
 
   productImage: {
     width: 100,
     height: 100,
-    borderRadius: 10
+    borderRadius: 10,
+    marginBottom: 8,
+    backgroundColor: '#f0f0f0'
   },
 
   productName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    marginVertical: 5,
+    marginVertical: 4,
     textAlign: 'center'
   },
 
   productPrice: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#E91E63',
-    marginBottom: 10
+    marginBottom: 8,
+    textAlign: 'center'
   },
 
-  buyButton: {
+  productActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: '100%',
+    marginTop: 5
+  },
+  addToCartIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#E91E63',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 5
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-
+  addToCartIconText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    lineHeight: 20
+  },
+  buyButton: {
+    flex: 1,
+    backgroundColor: '#E91E63',
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 30
+  },
   buyButtonText: {
     color: '#fff',
+    fontSize: 10,
     fontWeight: 'bold'
+  },
+  buttonDisabled: {
+    opacity: 0.5
   },
 
   loadingContainer: {
@@ -620,6 +855,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
     minWidth: 100,
     marginRight: 8
+  },
+  filterInputPrice: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 13,
+    backgroundColor: '#f9f9f9',
+    minWidth: 80,
+    marginRight: 6,
+    maxWidth: 120
+  },
+  filterLabelSmall: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    marginRight: 6,
+    minWidth: 50
   },
   filterButtons: {
     flexDirection: 'row',

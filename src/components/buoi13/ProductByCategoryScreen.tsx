@@ -18,13 +18,79 @@ import CategorySelector from './CategorySelector';
 type ProductsByCategoryRouteProp = RouteProp<HomeStackParamList, 'ProductsByCategory'>;
 type ProductsByCategoryNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'ProductsByCategory'>;
 
-// Sử dụng hình ảnh placeholder từ assets có sẵn
+// Sử dụng hình ảnh placeholder từ assets có sẵn (fallback khi không tìm thấy ảnh từ database)
 const productImages: ImageSourcePropType[] = [
-  require('../../../assets/images/avt1.jpg'),
-  require('../../../assets/images/copimage.png'),
-  require('../../../assets/images/avt1.jpg'),
-  require('../../../assets/images/copimage.png'),
+  require('../../../assets/images/background.jpg'),
+  require('../../../assets/images/7bc826eba41114e8d6e14913bba200ea.jpg'),
+  require('../../../assets/images/background.jpg'),
+  require('../../../assets/images/60a4448bc5d9b97f0b148deb2086a61e.jpg'),
 ];
+
+// Mapping các ảnh có sẵn - map từ tên file đến require path
+const imageMap: { [key: string]: ImageSourcePropType } = {
+  // Ảnh trong thư mục assets/images/
+  'somitrang.jpg': require('../../../assets/images/somitrang.jpg'),
+  'aothunnam.jpg': require('../../../assets/images/aothunnam.jpg'),
+  'aokhoacgio.jpg': require('../../../assets/images/aokhoacgio.jpg'),
+  'aopolo.jpg': require('../../../assets/images/aopolo.jpg'),
+  'balothoitrang.jpg': require('../../../assets/images/balothoitrang.jpg'),
+  'balolaptop.jpg': require('../../../assets/images/balolaptop.jpg'),
+  'balodulich.jpg': require('../../../assets/images/balodulich.jpg'),
+  'balothethao.jpg': require('../../../assets/images/balothethao.jpg'),
+  'balohocsinh.jpg': require('../../../assets/images/balohocsinh.jpg'),
+  'baolomini.jpg': require('../../../assets/images/baolomini.jpg'),
+  'muluoitrai.jpg': require('../../../assets/images/muluoitrai.jpg'),
+  'mubucket.jpg': require('../../../assets/images/mubucket.jpg'),
+  'musnapback.png': require('../../../assets/images/musnapback.png'),
+  'mulen.jpg': require('../../../assets/images/mulen.jpg'),
+  'murongvanh.jpg': require('../../../assets/images/murongvanh.jpg'),
+  'mubeanie.jpg': require('../../../assets/images/mubeanie.jpg'),
+  'tuixaschnu.jpg': require('../../../assets/images/tuixaschnu.jpg'),
+  'tuideocheo.jpg': require('../../../assets/images/tuideocheo.jpg'),
+  'tuitote.jpg': require('../../../assets/images/tuitote.jpg'),
+  'tuimini.jpg': require('../../../assets/images/tuimini.jpg'),
+  'tuida.jpg': require('../../../assets/images/tuida.jpg'),
+  'tuivai.jpg': require('../../../assets/images/tuivai.jpg'),
+  
+  // Ảnh trong thư mục assets/images/
+  '7bc826eba41114e8d6e14913bba200ea.jpg': require('../../../assets/images/7bc826eba41114e8d6e14913bba200ea.jpg'),
+  '60a4448bc5d9b97f0b148deb2086a61e.jpg': require('../../../assets/images/60a4448bc5d9b97f0b148deb2086a61e.jpg'),
+  'fbcc9d99190adf16c0a0c50c56f72a21.jpg': require('../../../assets/images/fbcc9d99190adf16c0a0c50c56f72a21.jpg'),
+  'c24d3694c02ec6c6357a272317a29379.jpg': require('../../../assets/images/c24d3694c02ec6c6357a272317a29379.jpg'),
+  '683f90012798ec5d6e581f2a73792656.jpg': require('../../../assets/images/683f90012798ec5d6e581f2a73792656.jpg'),
+  '7a98c0d842332176931eff0285810bab.jpg': require('../../../assets/images/7a98c0d842332176931eff0285810bab.jpg'),
+  '28eddfd49ca1fbe3a605e461ab5bcdd3.jpg': require('../../../assets/images/28eddfd49ca1fbe3a605e461ab5bcdd3.jpg'),
+  '2f037efeff55f8f0a1339d7e2ec48359.jpg': require('../../../assets/images/2f037efeff55f8f0a1339d7e2ec48359.jpg'),
+  'background.jpg': require('../../../assets/images/background.jpg'),
+};
+
+// Hàm lấy hình ảnh từ database
+const getProductImage = (product: Product): ImageSourcePropType => {
+  // Nếu có đường dẫn ảnh trong database, thử tìm tên file
+  if (product.img) {
+    // Lấy tên file từ đường dẫn (có thể là '../assets/images/filename.jpg' hoặc 'filename.jpg')
+    // Xử lý cả trường hợp có 'images/images' trong đường dẫn
+    let fileName = '';
+    
+    // Xử lý trường hợp có 'images/images' trong đường dẫn
+    if (product.img.includes('images/images/')) {
+      fileName = product.img.split('images/images/')[1];
+    } else {
+      // Lấy tên file cuối cùng từ đường dẫn
+      const pathParts = product.img.split('/');
+      fileName = pathParts[pathParts.length - 1];
+    }
+    
+    // Kiểm tra xem có ảnh trong mapping không
+    if (imageMap[fileName]) {
+      return imageMap[fileName];
+    }
+  }
+  
+  // Nếu không tìm thấy, sử dụng hình ảnh dựa trên categoryId
+  const imageIndex = (product.categoryId - 1) % productImages.length;
+  return productImages[imageIndex];
+};
 
 // Hàm convert Product từ database sang Product1 để hiển thị
 const convertProductToProduct1 = (product: Product): Product1 => {
@@ -32,7 +98,7 @@ const convertProductToProduct1 = (product: Product): Product1 => {
     id: product.id.toString(),
     name: product.name,
     price: `${product.price.toLocaleString('vi-VN')}đ`,
-    image: productImages[product.id % productImages.length] // Sử dụng hình ảnh placeholder
+    image: getProductImage(product)
   };
 };
 
@@ -75,11 +141,6 @@ export default function ProductsByCategoryScreen() {
     loadProducts();
   }, [selectedCategoryId]);
 
-  const getImageSource = (img: string) => {
-    if (img.startsWith('file://')) return { uri: img };
-    // Sử dụng hình ảnh placeholder từ assets có sẵn
-    return require('../../../assets/images/avt1.jpg');
-  };
 
   const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
 
@@ -129,7 +190,7 @@ export default function ProductsByCategoryScreen() {
                 onPress={() => navigation.navigate('Details', { product: product1 })}
                 activeOpacity={0.7}
               >
-                <Image source={getImageSource(item.img)} style={styles.image} />
+                <Image source={product1.image} style={styles.image} />
                 <View style={styles.info}>
                   <Text style={styles.name}>{item.name}</Text>
                   <Text style={styles.price}>{item.price.toLocaleString('vi-VN')} đ</Text>
