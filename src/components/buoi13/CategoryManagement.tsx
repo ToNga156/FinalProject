@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
   SafeAreaView,
   TextInput,
-  Modal
+  Modal,
+  Image,
+  ScrollView
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParamList } from './types';
@@ -18,8 +20,17 @@ import {
   addCategory,
   updateCategory,
   deleteCategory,
-  Category
+  addProduct,
+  fetchProductsByCategory,
+  Category,
+  Product
 } from '../../database';
+import {
+  launchImageLibrary,
+  launchCamera,
+  ImagePickerResponse,
+  MediaType,
+} from 'react-native-image-picker';
 import Header from './Header';
 
 type CategoryManagementProps = NativeStackScreenProps<HomeStackParamList, 'CategoryManagement'>;
@@ -30,6 +41,13 @@ const CategoryManagement = ({ navigation }: CategoryManagementProps) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState('');
+  
+  // States for add product modal
+  const [productModalVisible, setProductModalVisible] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
+  const [productName, setProductName] = useState('');
+  const [productPrice, setProductPrice] = useState('');
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
 
   useEffect(() => {
     loadCategories();
@@ -107,7 +125,128 @@ const CategoryManagement = ({ navigation }: CategoryManagementProps) => {
   };
 
   const handleAddProduct = (categoryId: number) => {
-    navigation.navigate('ProductManagement', { categoryId });
+    setSelectedCategoryId(categoryId);
+    setProductName('');
+    setProductPrice('');
+    setSelectedImageUri(null);
+    setProductModalVisible(true);
+  };
+
+  const handlePickImage = () => {
+    const options = {
+      mediaType: 'photo' as MediaType,
+      quality: 0.8 as const,
+      maxWidth: 1000,
+      maxHeight: 1000,
+      includeBase64: false,
+      saveToPhotos: false,
+    };
+
+    Alert.alert(
+      'Chọn ảnh sản phẩm',
+      'Bạn muốn chọn ảnh từ đâu?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Thư viện ảnh',
+          onPress: () => {
+            launchImageLibrary(options, (response: ImagePickerResponse) => {
+              if (response.didCancel) {
+                return;
+              }
+              
+              if (response.errorCode) {
+                let errorMsg = 'Unknown error';
+                if (response.errorCode === 'permission') {
+                  errorMsg = 'Không có quyền truy cập thư viện ảnh. Vui lòng cấp quyền trong Cài đặt.';
+                } else if (response.errorMessage) {
+                  errorMsg = response.errorMessage;
+                }
+                Alert.alert('Lỗi', `Không thể chọn ảnh: ${errorMsg}`);
+                return;
+              }
+              
+              if (response.assets && response.assets.length > 0 && response.assets[0].uri) {
+                const uri = response.assets[0].uri;
+                setSelectedImageUri(uri);
+              }
+            });
+          },
+        },
+        {
+          text: 'Chụp ảnh',
+          onPress: () => {
+            launchCamera(options, (response: ImagePickerResponse) => {
+              if (response.didCancel) {
+                return;
+              }
+              
+              if (response.errorCode) {
+                let errorMsg = 'Unknown error';
+                if (response.errorCode === 'permission') {
+                  errorMsg = 'Không có quyền truy cập camera. Vui lòng cấp quyền trong Cài đặt.';
+                } else if (response.errorCode === 'camera_unavailable') {
+                  errorMsg = 'Camera không khả dụng';
+                } else if (response.errorMessage) {
+                  errorMsg = response.errorMessage;
+                }
+                Alert.alert('Lỗi', `Không thể chụp ảnh: ${errorMsg}`);
+                return;
+              }
+              
+              if (response.assets && response.assets.length > 0 && response.assets[0].uri) {
+                const uri = response.assets[0].uri;
+                setSelectedImageUri(uri);
+              }
+            });
+          },
+        },
+        {
+          text: 'Xóa ảnh',
+          style: 'destructive',
+          onPress: () => {
+            setSelectedImageUri(null);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSaveProduct = async () => {
+    if (!productName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên sản phẩm');
+      return;
+    }
+
+    if (!productPrice.trim() || isNaN(parseFloat(productPrice))) {
+      Alert.alert('Lỗi', 'Vui lòng nhập giá hợp lệ');
+      return;
+    }
+
+    if (selectedCategoryId === 0) {
+      Alert.alert('Lỗi', 'Vui lòng chọn danh mục');
+      return;
+    }
+
+    try {
+      const price = parseFloat(productPrice);
+      const imagePath = selectedImageUri || 'hinh1.jpg';
+      
+      await addProduct({
+        name: productName.trim(),
+        price,
+        img: imagePath,
+        categoryId: selectedCategoryId
+      });
+      
+      Alert.alert('Thành công', 'Đã thêm sản phẩm thành công');
+      setProductModalVisible(false);
+      setProductName('');
+      setProductPrice('');
+      setSelectedImageUri(null);
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể lưu sản phẩm');
+    }
   };
 
   const renderCategory = ({ item }: { item: Category }) => (
@@ -226,6 +365,94 @@ const CategoryManagement = ({ navigation }: CategoryManagementProps) => {
                 <Text style={styles.saveButtonText}>Lưu</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Add Product */}
+      <Modal
+        visible={productModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setProductModalVisible(false);
+          setProductName('');
+          setProductPrice('');
+          setSelectedImageUri(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.modalTitle}>Thêm Sản Phẩm</Text>
+              <Text style={styles.modalLabel}>
+                Danh mục: {categories.find(c => c.id === selectedCategoryId)?.name || 'N/A'}
+              </Text>
+
+              <Text style={styles.modalLabel}>Tên sản phẩm:</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Nhập tên sản phẩm"
+                value={productName}
+                onChangeText={setProductName}
+                placeholderTextColor="#999"
+              />
+
+              <Text style={styles.modalLabel}>Giá:</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Nhập giá"
+                value={productPrice}
+                onChangeText={setProductPrice}
+                keyboardType="numeric"
+                placeholderTextColor="#999"
+              />
+
+              <Text style={styles.modalLabel}>Hình ảnh:</Text>
+              
+              {/* Preview ảnh đã chọn */}
+              {selectedImageUri ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image source={{ uri: selectedImageUri }} style={styles.imagePreview} />
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={() => setSelectedImageUri(null)}
+                  >
+                    <Text style={styles.removeImageButtonText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              {/* Nút chọn ảnh */}
+              <TouchableOpacity
+                style={styles.pickImageButton}
+                onPress={handlePickImage}
+              >
+                <Text style={styles.pickImageButtonText}>
+                  {selectedImageUri ? 'Thay đổi ảnh' : 'Chọn ảnh từ thiết bị'}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    setProductModalVisible(false);
+                    setProductName('');
+                    setProductPrice('');
+                    setSelectedImageUri(null);
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Hủy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.saveButton]}
+                  onPress={handleSaveProduct}
+                >
+                  <Text style={styles.saveButtonText}>Lưu</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -389,7 +616,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    width: '80%',
+    width: '90%',
+    maxHeight: '80%',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -441,6 +669,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff'
+  },
+  modalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+    marginTop: 10
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    marginBottom: 15,
+    alignItems: 'center'
+  },
+  imagePreview: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    resizeMode: 'cover'
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 5,
+    right: '25%',
+    backgroundColor: '#E91E63',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3
+  },
+  removeImageButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold'
+  },
+  pickImageButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 15
+  },
+  pickImageButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600'
   }
 });
 

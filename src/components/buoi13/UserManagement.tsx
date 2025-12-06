@@ -19,6 +19,7 @@ type UserManagementProps = NativeStackScreenProps<HomeStackParamList, 'UserManag
 const UserManagement = ({ navigation }: UserManagementProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'admin' | 'user'>('admin');
 
   useEffect(() => {
     loadUsers();
@@ -36,6 +37,19 @@ const UserManagement = ({ navigation }: UserManagementProps) => {
       setLoading(false);
     }
   };
+
+  // Đếm số lượng admin và user
+  const adminCount = users.filter(user => user.role === 'admin').length;
+  const userCount = users.filter(user => user.role === 'user').length;
+
+  // Lọc users theo tab đang chọn
+  const filteredUsers = users.filter(user => {
+    if (activeTab === 'admin') {
+      return user.role === 'admin';
+    } else {
+      return user.role === 'user';
+    }
+  });
 
   const handleUpdateRole = (user: User) => {
     const newRole = user.role === 'admin' ? 'user' : 'admin';
@@ -150,14 +164,42 @@ const UserManagement = ({ navigation }: UserManagementProps) => {
         <View style={styles.backButton} />
       </View>
 
+      {/* Tab Selector */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'admin' && styles.tabActive]}
+          onPress={() => setActiveTab('admin')}
+        >
+          <Text style={[styles.tabText, activeTab === 'admin' && styles.tabTextActive]}>
+            Quản Lý Admin
+          </Text>
+          <Text style={[styles.tabCount, activeTab === 'admin' && styles.tabCountActive]}>
+            ({adminCount})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'user' && styles.tabActive]}
+          onPress={() => setActiveTab('user')}
+        >
+          <Text style={[styles.tabText, activeTab === 'user' && styles.tabTextActive]}>
+            Quản Lý User
+          </Text>
+          <Text style={[styles.tabCount, activeTab === 'user' && styles.tabCountActive]}>
+            ({userCount})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        data={users}
+        data={filteredUsers}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderUser}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Chưa có người dùng nào</Text>
+            <Text style={styles.emptyText}>
+              {activeTab === 'admin' ? 'Chưa có admin nào' : 'Chưa có user nào'}
+            </Text>
           </View>
         }
       />
@@ -200,6 +242,41 @@ const styles = StyleSheet.create({
     color: '#fff',
     flex: 1,
     textAlign: 'center'
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingHorizontal: 15
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 15,
+    alignItems: 'center',
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent'
+  },
+  tabActive: {
+    borderBottomColor: '#E91E63'
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666'
+  },
+  tabTextActive: {
+    color: '#E91E63'
+  },
+  tabCount: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#999',
+    marginTop: 2
+  },
+  tabCountActive: {
+    color: '#E91E63',
+    fontWeight: '600'
   },
   listContainer: {
     padding: 15
